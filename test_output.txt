@@ -1,0 +1,6 @@
+test Enqueue & Dequeue passed.
+test FindMin passed.
+test DuplicateException passed.
+test Operators passed.
+Test Copy & Assign passed.
+All tests passed successfully.
