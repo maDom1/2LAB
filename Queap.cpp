@@ -1,140 +1,304 @@
 #include "Queap.h"
-#include <deque>
-#include <set>
+#include <stdexcept>
 #include <iostream>
 #include <memory>
-#include <algorithm>
-#include <stdexcept>
-
-using namespace std;
 
 namespace my_project {
 
-struct Queap::QueapImpl {
-    static const int MAX_SIZE = 25;
+class MyDeque {
+    struct Node {
+        int value;
+        Node* prev;
+        Node* next;
+        Node(int v) : value(v), prev(nullptr), next(nullptr) {}
+    };
 
-    deque<int> queue;
-    multiset<int> minSet;
+    Node* head;
+    Node* tail;
+    int sz;
 
-    void enqueue(int x) {
-        if (queue.size() >= MAX_SIZE) {
-            throw overflow_error("Queap is full. Maximum size is 25.");
+public:
+    MyDeque() : head(nullptr), tail(nullptr), sz(0) {}
+    ~MyDeque() { clear(); }
+
+    void push_back(int x) {
+        Node* n = new Node(x);
+        if (!head) {
+            head = tail = n;
+        } else {
+            tail->next = n;
+            n->prev = tail;
+            tail = n;
         }
-        if (minSet.count(x) > 0) {
-            throw DuplicateValueException(x);
-        }
-        queue.push_back(x);
-        minSet.insert(x);
+        sz++;
     }
 
-    void dequeue() {
-        if (queue.empty()) {
-            throw underflow_error("Queue is empty. Cannot dequeue.");
-        }
-        int front = queue.front();
-        queue.pop_front();
-        minSet.erase(minSet.find(front));
+    void pop_front() {
+        if (!head) throw std::underflow_error("MyDeque is empty");
+        Node* h = head;
+        head = head->next;
+        if (head) head->prev = nullptr; else tail = nullptr;
+        delete h;
+        sz--;
     }
 
-    int findMin() const {
-        if (minSet.empty()) {
-            throw underflow_error("Queue is empty. Cannot find minimum.");
-        }
-        return *minSet.begin();
-    }
-
-    bool isEmpty() const {
-        return queue.empty();
+    int front() const {
+        if (!head) throw std::underflow_error("MyDeque is empty");
+        return head->value;
     }
 
     int size() const {
-        return (int)queue.size();
+        return sz;
     }
 
-    void printQueap() const {
-        cout << "Queap contents: ";
-        for (int val : queue) {
-            cout << val << " ";
-        }
-        cout << endl;
+    bool empty() const {
+        return (sz == 0);
     }
 
-    bool isEqualTo(const QueapImpl& other) const {
-        return queue == other.queue;
-    }
-
-    int getAtIndex(int index) const {
-        if (index < 0 || index >= (int)queue.size()) {
-            throw out_of_range("Index out of range in Queap");
-        }
-        return queue[index];
-    }
-
-    void addFrom(const QueapImpl& other) {
-        for (int val : other.queue) {
-            if (queue.size() >= MAX_SIZE) break;
-            if (minSet.count(val) == 0) {
-                queue.push_back(val);
-                minSet.insert(val);
+    bool removeOne(int x) {
+        Node* cur = head;
+        while (cur) {
+            if (cur->value == x) {
+                Node* p = cur->prev;
+                Node* nx = cur->next;
+                if (p) p->next = nx; else head = nx;
+                if (nx) nx->prev = p; else tail = p;
+                delete cur;
+                sz--;
+                return true;
             }
+            cur = cur->next;
         }
-    }
-
-    void removeFrom(const QueapImpl& other) {
-        for (int val : other.queue) {
-            auto it = find(queue.begin(), queue.end(), val);
-            if (it != queue.end()) {
-                queue.erase(it);
-                minSet.erase(minSet.find(val));
-            }
-        }
+        return false;
     }
 
     void clear() {
-        queue.clear();
-        minSet.clear();
+        while (head) {
+            Node* tmp = head;
+            head = head->next;
+            delete tmp;
+        }
+        tail = nullptr;
+        sz = 0;
+    }
+
+    bool equals(const MyDeque& other) const {
+        if (sz != other.sz) return false;
+        Node* a = head;
+        Node* b = other.head;
+        while (a && b) {
+            if (a->value != b->value) return false;
+            a = a->next;
+            b = b->next;
+        }
+        return true;
+    }
+
+    bool lessThan(const MyDeque& other) const {
+        Node* a = head;
+        Node* b = other.head;
+        while (a && b) {
+            if (a->value < b->value) return true;
+            if (a->value > b->value) return false;
+            a = a->next;
+            b = b->next;
+        }
+        return (sz < other.sz);
+    }
+
+    int at(int index) const {
+        if (index < 0 || index >= sz) {
+            throw std::out_of_range("Index out of range in MyDeque");
+        }
+        Node* cur = head;
+        for (int i = 0; i < index; i++) {
+            cur = cur->next;
+        }
+        return cur->value;
+    }
+
+    void copyFrom(const MyDeque& other) {
+        clear();
+        Node* cur = other.head;
+        while (cur) {
+            push_back(cur->value);
+            cur = cur->next;
+        }
+    }
+
+    void printAll() const {
+        Node* cur = head;
+        while (cur) {
+            std::cout << cur->value << " ";
+            cur = cur->next;
+        }
     }
 };
 
-Queap::Queap() : impl(make_unique<QueapImpl>()) {}
+class MyMultiSet {
+    struct Node {
+        int value;
+        Node* prev;
+        Node* next;
+        Node(int v) : value(v), prev(nullptr), next(nullptr) {}
+    };
 
-Queap::Queap(const Queap& other) : impl(make_unique<QueapImpl>(*other.impl)) {}
+    Node* head;
+    Node* tail;
+    int sz;
 
-Queap::~Queap() = default;
+public:
+    MyMultiSet() : head(nullptr), tail(nullptr), sz(0) {}
+    ~MyMultiSet() { clear(); }
 
-void Queap::enqueue(int x) {
-    impl->enqueue(x);
-}
+    void insert(int x) {
+        Node* n = new Node(x);
+        if (!head) {
+            head = tail = n;
+            sz++;
+            return;
+        }
+        Node* cur = head;
+        while (cur && cur->value <= x) {
+            cur = cur->next;
+        }
+        if (!cur) {
+            tail->next = n;
+            n->prev = tail;
+            tail = n;
+        } else {
+            Node* p = cur->prev;
+            n->next = cur;
+            cur->prev = n;
+            n->prev = p;
+            if (p) p->next = n; else head = n;
+        }
+        sz++;
+    }
 
-void Queap::dequeue() {
-    impl->dequeue();
-}
+    int count(int x) const {
+        int c = 0;
+        Node* cur = head;
+        while (cur) {
+            if (cur->value == x) c++;
+            cur = cur->next;
+        }
+        return c;
+    }
 
-int Queap::findMin() const {
-    return impl->findMin();
-}
+    void eraseOne(int x) {
+        Node* cur = head;
+        while (cur) {
+            if (cur->value == x) {
+                Node* p = cur->prev;
+                Node* nx = cur->next;
+                if (p) p->next = nx; else head = nx;
+                if (nx) nx->prev = p; else tail = p;
+                delete cur;
+                sz--;
+                return;
+            }
+            cur = cur->next;
+        }
+    }
 
-bool Queap::isEmpty() const {
-    return impl->isEmpty();
-}
+    bool empty() const {
+        return (sz == 0);
+    }
 
-int Queap::size() const {
-    return impl->size();
-}
+    void clear() {
+        while (head) {
+            Node* tmp = head;
+            head = head->next;
+            delete tmp;
+        }
+        tail = nullptr;
+        sz = 0;
+    }
 
-void Queap::printQueap() const {
-    impl->printQueap();
+    int getMin() const {
+        if (!head) throw std::underflow_error("MyMultiSet is empty");
+        return head->value;
+    }
+
+    void copyFrom(const MyMultiSet& other) {
+        clear();
+        Node* cur = other.head;
+        while (cur) {
+            insert(cur->value);
+            cur = cur->next;
+        }
+    }
+};
+
+struct Queap::QueapImpl {
+private:
+    friend class Queap;
+    static const int MAX_SIZE = 25;
+    MyDeque queue;
+    MyMultiSet minSet;
+};
+
+Queap::Queap() : impl(std::make_unique<QueapImpl>()) {}
+
+Queap::Queap(const Queap& other) : impl(std::make_unique<QueapImpl>()) {
+    impl->queue.copyFrom(other.impl->queue);
+    impl->minSet.copyFrom(other.impl->minSet);
 }
 
 Queap& Queap::operator=(const Queap& other) {
     if (this != &other) {
-        impl = make_unique<QueapImpl>(*other.impl);
+        impl->queue.copyFrom(other.impl->queue);
+        impl->minSet.copyFrom(other.impl->minSet);
     }
     return *this;
 }
 
+Queap::~Queap() = default;
+
+void Queap::enqueue(int x) {
+    if (impl->queue.size() >= QueapImpl::MAX_SIZE) {
+        throw std::overflow_error("Queap is full. Maximum size is 25.");
+    }
+    if (impl->minSet.count(x) > 0) {
+        throw DuplicateValueException(x);
+    }
+    impl->queue.push_back(x);
+    impl->minSet.insert(x);
+}
+
+void Queap::dequeue() {
+    if (impl->queue.empty()) {
+        throw std::underflow_error("Queue is empty. Cannot dequeue.");
+    }
+    int frontVal = impl->queue.front();
+    impl->queue.pop_front();
+    impl->minSet.eraseOne(frontVal);
+}
+
+int Queap::findMin() const {
+    if (impl->minSet.empty()) {
+        throw std::underflow_error("Queue is empty. Cannot find minimum.");
+    }
+    return impl->minSet.getMin();
+}
+
+bool Queap::isEmpty() const {
+    return impl->queue.empty();
+}
+
+int Queap::size() const {
+    return impl->queue.size();
+}
+
+void Queap::printQueap() const {
+    std::cout << "Queap contents: ";
+    impl->queue.printAll();
+    std::cout << std::endl;
+}
+
 bool Queap::operator==(const Queap& other) const {
-    return impl->isEqualTo(*other.impl);
+    return impl->queue.equals(other.impl->queue);
 }
 
 bool Queap::operator!=(const Queap& other) const {
@@ -142,11 +306,11 @@ bool Queap::operator!=(const Queap& other) const {
 }
 
 bool Queap::operator<(const Queap& other) const {
-    return impl->queue < other.impl->queue;
+    return impl->queue.lessThan(other.impl->queue);
 }
 
 bool Queap::operator>(const Queap& other) const {
-    return impl->queue > other.impl->queue;
+    return other.impl->queue.lessThan(impl->queue);
 }
 
 bool Queap::operator<=(const Queap& other) const {
@@ -158,21 +322,33 @@ bool Queap::operator>=(const Queap& other) const {
 }
 
 int Queap::operator[](int index) const {
-    return impl->getAtIndex(index);
+    return impl->queue.at(index);
 }
 
 Queap& Queap::operator+=(const Queap& other) {
-    impl->addFrom(*other.impl);
+    for (int i = 0; i < other.impl->queue.size(); i++) {
+        if (impl->queue.size() >= QueapImpl::MAX_SIZE) break;
+        int val = other.impl->queue.at(i);
+        if (impl->minSet.count(val) == 0) {
+            impl->queue.push_back(val);
+            impl->minSet.insert(val);
+        }
+    }
     return *this;
 }
 
 Queap& Queap::operator-=(const Queap& other) {
-    impl->removeFrom(*other.impl);
+    for (int i = 0; i < other.impl->queue.size(); i++) {
+        int val = other.impl->queue.at(i);
+        if (impl->queue.removeOne(val)) {
+            impl->minSet.eraseOne(val);
+        }
+    }
     return *this;
 }
 
 void Queap::operator!() {
-    impl->clear();
+    impl->queue.clear();
+    impl->minSet.clear();
 }
-
 }
