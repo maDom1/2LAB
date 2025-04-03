@@ -3,6 +3,8 @@
 #include <iostream>
 #include <memory>
 
+using namespace std;
+
 namespace my_project {
 
 class MyDeque {
@@ -34,7 +36,7 @@ public:
     }
 
     void pop_front() {
-        if (!head) throw std::underflow_error("MyDeque is empty");
+        if (!head) throw underflow_error("Deque is empty");
         Node* h = head;
         head = head->next;
         if (head) head->prev = nullptr; else tail = nullptr;
@@ -43,7 +45,7 @@ public:
     }
 
     int front() const {
-        if (!head) throw std::underflow_error("MyDeque is empty");
+        if (!head) throw underflow_error("Deque is empty");
         return head->value;
     }
 
@@ -108,7 +110,7 @@ public:
 
     int at(int index) const {
         if (index < 0 || index >= sz) {
-            throw std::out_of_range("Index out of range in MyDeque");
+            throw out_of_range("Index out of range in Deque");
         }
         Node* cur = head;
         for (int i = 0; i < index; i++) {
@@ -129,7 +131,7 @@ public:
     void printAll() const {
         Node* cur = head;
         while (cur) {
-            std::cout << cur->value << " ";
+            cout << cur->value << " ";
             cur = cur->next;
         }
     }
@@ -217,7 +219,7 @@ public:
     }
 
     int getMin() const {
-        if (!head) throw std::underflow_error("MyMultiSet is empty");
+        if (!head) throw underflow_error("No elements in container");
         return head->value;
     }
 
@@ -258,7 +260,7 @@ Queap::~Queap() = default;
 
 void Queap::enqueue(int x) {
     if (impl->queue.size() >= QueapImpl::MAX_SIZE) {
-        throw std::overflow_error("Queap is full. Maximum size is 25.");
+        throw overflow_error("Queap is full. Maximum size is 25.");
     }
     if (impl->minSet.count(x) > 0) {
         throw DuplicateValueException(x);
@@ -269,7 +271,7 @@ void Queap::enqueue(int x) {
 
 void Queap::dequeue() {
     if (impl->queue.empty()) {
-        throw std::underflow_error("Queue is empty. Cannot dequeue.");
+        throw underflow_error("Queue is empty. Cannot dequeue.");
     }
     int frontVal = impl->queue.front();
     impl->queue.pop_front();
@@ -278,7 +280,7 @@ void Queap::dequeue() {
 
 int Queap::findMin() const {
     if (impl->minSet.empty()) {
-        throw std::underflow_error("Queue is empty. Cannot find minimum.");
+        throw underflow_error("Queue is empty. Cannot find minimum.");
     }
     return impl->minSet.getMin();
 }
@@ -292,9 +294,7 @@ int Queap::size() const {
 }
 
 void Queap::printQueap() const {
-    std::cout << "Queap contents: ";
     impl->queue.printAll();
-    std::cout << std::endl;
 }
 
 bool Queap::operator==(const Queap& other) const {
@@ -351,4 +351,5 @@ void Queap::operator!() {
     impl->queue.clear();
     impl->minSet.clear();
 }
+
 }
